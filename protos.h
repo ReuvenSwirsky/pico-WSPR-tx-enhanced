@@ -4,4 +4,6 @@
 void InitPicoHW(void);
 void Core1Entry(void);
 
+void N2GF_FlashTimingApply(void);
+
 #endif

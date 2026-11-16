@@ -93,7 +93,13 @@
 #define PLL_SYS_MHZ_OVERCLOCK_270MHZ 270UL
 #define PLL_SYS_MHZ_OVERCLOCK_200MHZ 200UL
 #define PLL_SYS_MHZ_DEFAULT 125UL
+/* N2GF: system clock is a build option: cmake -DWSPR_SYSCLK_MHZ=288 ...
+   Unset = original behaviour (200 MHz). The DCO tops out at PLL_SYS_MHZ / 8. */
+#ifdef WSPR_SYSCLK_MHZ
+#define PLL_SYS_MHZ ((unsigned long)(WSPR_SYSCLK_MHZ))
+#else
 #define PLL_SYS_MHZ PLL_SYS_MHZ_OVERCLOCK_200MHZ
+#endif
                                                              /* WSPR defs. */
 #define WSPR_FREQ_STEP_MILHZ    2930UL     /* FSK freq.bin (*2 this time). */
 #define WSPR_MAX_GPS_DISCONNECT_TM  \

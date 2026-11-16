@@ -103,5 +103,6 @@ char *WSPRbeaconGetLastQTHLocator(void);
 uint8_t WSPRbeaconIsGPSsolutionActive(void);
 
 bool ledTimer_callback(__unused repeating_timer_t *rt);
+extern volatile uint64_t wsprTickUs;
 
 #endif

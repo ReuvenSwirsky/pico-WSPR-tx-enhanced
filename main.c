@@ -98,6 +98,18 @@ void rebootIntoFlashUpdateMode(void)
 WSPRbeaconContext *pWB;
 void wsprLoop(void)
 {
+    /* N2GF: with GPS, the 1 s scheduler tick (and the watchdog feed) came only
+       from the PPS interrupt. If PPS stops - e.g. the GPS receiver is desensed
+       by our own transmitter (28.126 MHz x 56 = 1575.06 MHz, 0.36 MHz from GPS L1)
+       - this loop blocked, the 10 s watchdog reset the Pico mid-transmission and
+       after reboot main() waited for PPS again: the "hang/crash above 20 MHz with
+       GPS" symptom. Now a missing PPS is replaced by a crystal-timed holdover tick
+       one second after the previous tick, and the slot time is derived from the
+       PPS-anchored GPS time (GPStimeGetTimeAtUs), so Tx and the watchdog carry on. */
+    const uint64_t HOLDOVER_US = 1250000ULL;
+    uint64_t lastTickUs = time_us_64();
+    uint32_t holdoverTicks = 0;
+
         while(true)
     {
         if(pWB->_txSched._u8_tx_GPS_mandatory && settingsData.gpsLocation)
@@ -115,10 +127,31 @@ void wsprLoop(void)
             }
         }
 
+        bool holdover = false;
         while(!ppsTriggered)
         {
+            if(pWB->_txSched._u8_tx_GPS_mandatory && (time_us_64() - lastTickUs) >= HOLDOVER_US)
+            {
+                holdover = true;
+                break;
+            }
             tight_loop_contents();
         }
+
+        if(holdover)
+        {
+            lastTickUs += 1000000ULL;
+            if((holdoverTicks++ % 10) == 0)
+            {
+                printf("GPS PPS missing - holdover tick %lu\n", (unsigned long)holdoverTicks);
+            }
+        }
+        else
+        {
+            lastTickUs = pWB->_txSched._u8_tx_GPS_mandatory ? gu64_pps_time_us : time_us_64();
+            holdoverTicks = 0;
+        }
+        wsprTickUs = lastTickUs;
 
         watchdog_update();
 #ifdef DEBUG_PRINT
@@ -127,7 +160,10 @@ const bool debugMessages = true;
 const bool debugMessages = false;
 #endif
         WSPRbeaconTxScheduler(debugMessages);
-        ppsTriggered = false;
+        if(!holdover)
+        {
+            ppsTriggered = false;
+        }
     }
 }
 
@@ -166,10 +202,38 @@ int main()
         );
 
     
+    /* N2GF: refuse to transmit garbage if the band is above what the DCO can make
+       at this system clock (sysclk/8: 25 MHz at 200 MHz, 36 MHz at 288 MHz). */
+    printf("N2GF build: sysclk %lu MHz, DCO %s engine, max RF %lu Hz\n",
+           (unsigned long)PLL_SYS_MHZ, WSPR_DCO_FINE ? "fine (dco3)" : "classic (dco2)",
+           (unsigned long)PioDCOMaxFreqHz());
+    {
+        const uint32_t fTop = (settingsData.mode == MODE_WSPR) ? bandFrequencies[settingsData.bandIndex] + WSPR_FREQ_RANGE_HZ
+                                                               : settingsData.txFreq;
+        if(fTop > PioDCOMaxFreqHz())
+        {
+            while(true)
+            {
+                printf("ERROR: %lu Hz is above this build's limit of %lu Hz. Use the 10 m (Pico 2, 288 MHz) firmware.\n",
+                       (unsigned long)fTop, (unsigned long)PioDCOMaxFreqHz());
+                gpio_put(PICO_DEFAULT_LED_PIN, !gpio_get(PICO_DEFAULT_LED_PIN));
+                sleep_ms(250);
+                if(gpio_get(BTN_PIN))
+                {
+                    handleSettings(true);   /* lets the user pick another band */
+                    watchdog_enable(1, 1);  /* then reboot with the new settings */
+                    while(true);
+                }
+            }
+        }
+    }
+
     pWB->_txSched._u8_tx_GPS_mandatory  = false;
     pWB->_txSched._u8_tx_GPS_past_time  = CONFIG_GPS_RELY_ON_PAST_SOLUTION;
     pWB->_txSched._u8_tx_slot_skip      = settingsData.slotSkip + 1;
 
+
+    pWB->_pTX->_p_oscillator->_pGPStime= &gTimeContext;  /* N2GF: set before core1 starts (race) */
 
     multicore_launch_core1(Core1Entry);
 
@@ -236,6 +300,13 @@ int main()
     #endif        
             // PPS occurs at the start of the second before the RMC message is received, hence the actual time at PPS is + 1 second from the last nmea time
             int isec_of_hour = (pWB->_pTX->_p_oscillator->_pGPStime->_time_data._u32_utime_nmea_last + 1) % HOUR;  
+            {
+                uint32_t tnow;   /* N2GF: prefer the PPS-anchored time (same value when PPS and RMC are normal) */
+                if(0 == GPStimeGetTimeAtUs(gu64_pps_time_us, &tnow))
+                {
+                    isec_of_hour = tnow % HOUR;
+                }
+            }
             
             pWB->initialSlotOffset = (settingsData.slotSkip + 1) - (isec_of_hour / (2 * MINUTE)) - 1;
         }

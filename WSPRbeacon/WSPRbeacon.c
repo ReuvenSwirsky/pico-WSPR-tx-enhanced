@@ -158,6 +158,7 @@ int WSPRbeaconSendPacket(void)
 
 
 uint32_t lastNmeaRmcCount = 0;
+volatile uint64_t wsprTickUs = 0;   /* N2GF: time_us_64() of the current 1 s tick (PPS or holdover) */
 uint32_t lastSkipSlotModuloDisplayed = 0;
 int itx_trigger = 0;
 uint32_t lastIntDisplayed = 0;
@@ -174,6 +175,11 @@ int WSPRbeaconTxScheduler(int verbose)
     {
         // PPS occurs at the start of the second before the RMC message is received, hence the actual time at PPS is + 1 second from the last nmea time
         isec_of_hour = (becaconData._pTX->_p_oscillator->_pGPStime->_time_data._u32_utime_nmea_last + 1) % HOUR;
+        uint32_t tnow;   /* N2GF: PPS-anchored time, keeps counting through PPS dropouts */
+        if(0 == GPStimeGetTimeAtUs(wsprTickUs, &tnow))
+        {
+            isec_of_hour = tnow % HOUR;
+        }
     }
     else
     {
@@ -213,6 +219,11 @@ int WSPRbeaconTxScheduler(int verbose)
                 ledFlashTimer.delay_us = 2000000;
  
                 printf("WSPR> End Tx. @ %d secs\n",secsIntoCurrentSlot);
+                /* N2GF diagnostics: PIO FIFO underrun = core1 could not keep up (overclock too low / bus stalls). */
+                printf("WSPR> DCO FIFO underrun during Tx: %s. PPS ok:%lu filtered:%lu, bad NMEA:%lu\n",
+                       PioDCOUnderrun(becaconData._pTX->_p_oscillator) ? "YES (output was disturbed)" : "no",
+                       (unsigned long)gu32_pps_count, (unsigned long)gu32_pps_rejected,
+                       (unsigned long)becaconData._pTX->_p_oscillator->_pGPStime->_time_data._u32_nmea_bad_count);
 
                 if (settingsData.frequencyHop)
                 {

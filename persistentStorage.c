@@ -7,6 +7,7 @@
 
 #include "hardware/watchdog.h"
 #include "persistentStorage.h"
+#include "protos.h"
 
 const uint64_t  MAGIC_NUMBER    = 0x5069636F57535052;// 'PicoWSPR  
 const uint32_t  CURRENT_VERSION = 14;
@@ -110,12 +111,17 @@ void settingsReadFromFlash(bool forceReset)
     }
 }
 
-void settingsWriteToFlash(void)
+/* N2GF: runs from RAM so that, on an overclocked RP2350, the flash clock divider
+   that the bootrom's XIP restore puts back (clk_sys/3) is corrected by
+   N2GF_FlashTimingApply() before any code executes from flash again. */
+void __no_inline_not_in_flash_func(settingsWriteToFlash)(void)
 {
     uint32_t interrupts = save_and_disable_interrupts();
     
     flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE ); 
+    N2GF_FlashTimingApply();
     flash_range_program(FLASH_TARGET_OFFSET, (const uint8_t *)&settingsData, FLASH_SECTOR_SIZE);
+    N2GF_FlashTimingApply();
     restore_interrupts(interrupts);
 }
 

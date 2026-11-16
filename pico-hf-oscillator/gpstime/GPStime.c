@@ -107,11 +107,47 @@ GPStimeContext *GPStimeInit(int uart_id, int uart_baud, int pps_gpio)
 
 volatile bool ppsTriggered = false;
 
+/* N2GF: PPS edge filter. After an accepted edge the PPS GPIO interrupt is
+   disabled and re-armed 900 ms later from a timer alarm, so RF picked up on
+   the PPS line (or a noisy receiver) can never flood core0 with interrupts.
+   The time of each accepted edge is kept for the scheduler. */
+#define N2GF_PPS_REARM_US 900000
+volatile uint64_t gu64_pps_time_us = 0;      /* time_us_64() at last accepted PPS edge */
+volatile uint32_t gu32_pps_count = 0;        /* accepted PPS edges */
+volatile uint32_t gu32_pps_rejected = 0;     /* edges ignored by the filter */
+
+static int64_t GPStimePPSRearm(alarm_id_t id, void *user_data)
+{
+    (void)id; (void)user_data;
+    const uint gpio = (uint)gTimeContext._pps_gpio;
+    gpio_acknowledge_irq(gpio, GPIO_IRQ_EDGE_RISE);      /* drop edges seen while disarmed */
+    gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_RISE, true);
+    return 0;
+}
+
 /// @brief The PPS interrupt service subroutine.
 /// @param  gpio The GPIO pin of Pico which is connected to PPS output of GPS rec.
 void RAM (GPStimePPScallback)(uint gpio, uint32_t events)
 {   
+    const uint64_t now = time_us_64();
+    if(gu32_pps_count && (now - gu64_pps_time_us) < N2GF_PPS_REARM_US)
+    {
+        ++gu32_pps_rejected;
+        return;
+    }
+    gu64_pps_time_us = now;
+    ++gu32_pps_count;
+    if(spGPStimeData)
+    {
+        spGPStimeData->_u64_sysclk_pps_last = now;
+    }
     ppsTriggered = true;// used by the foreground loop
+
+    gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_RISE, false);
+    if(add_alarm_in_us(N2GF_PPS_REARM_US, GPStimePPSRearm, NULL, true) <= 0)
+    {
+        gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_RISE, true);   /* no alarm slot: stay armed */
+    }
 
 #ifdef FIX_BUGS_IN_THIS    
 // VK3KYY
@@ -143,17 +179,35 @@ void RAM (GPStimePPScallback)(uint gpio, uint32_t events)
                 spGPStimeData->_u64_pps_period_1M = (int64_t)eDtUpscale * dt_per_window;
             }
         }
-
-
-#ifdef NOP
-        const int64_t dt_1M = (dt_per_window + (eSlidingLen >> 1)) / eSlidingLen;
-        const uint64_t tmp = (spGPStimeData->_u64_pps_period_1M + (eSlidingLen >> 1)) / eSlidingLen;
-        printf("%llu %lld %llu %lld\n", spGPStimeData->_u64_sysclk_pps_last, dt_1M, tmp, 
-               spGPStimeData->_i32_freq_shift_ppb);
-#endif
-
     }
 #endif    
+}
+
+/// @brief N2GF: UTC unix time at instant t_us (time_us_64() timebase).
+/// @brief Anchored on the PPS edge that preceded the last valid RMC sentence
+/// @brief (that sentence reports the second that PPS edge started), so the
+/// @brief result stays right if PPS pulses go missing (e.g. GPS desensed by our
+/// @brief own transmitter) - it free-runs on the crystal timer (~+-30 ppm).
+/// @return 0 if OK, -1 no fix yet, -2 fix older than 24 h.
+int GPStimeGetTimeAtUs(uint64_t t_us, uint32_t *u32_tmdst)
+{
+    const uint32_t t0 = gTimeContext._time_data._u32_utime_nmea_last;
+    const uint64_t a0 = gTimeContext._time_data._u64_pps_of_nmea_last;
+    if(!t0 || !a0)
+    {
+        return -1;
+    }
+    if(t_us + 500000ULL < a0)
+    {
+        return -1;
+    }
+    const uint64_t dt = t_us + 500000ULL - a0;          /* round to nearest second */
+    if(dt > 86400ULL * 1000000ULL)
+    {
+        return -2;
+    }
+    *u32_tmdst = t0 + (uint32_t)(dt / 1000000ULL);
+    return 0;
 }
 
 /// @brief Calculates current unixtime using data available.
@@ -204,6 +258,12 @@ void RAM (GPStimeUartRxIsr)()
         if(gTimeContext._is_sentence_ready)
         {
             gTimeContext.GpsNmeaReceived = true;
+            /* N2GF: terminate the sentence so stale bytes from a longer, older
+               sentence are never parsed (buffer is 256 bytes, index is uint8_t). */
+            if(gTimeContext._u8_ixw)
+            {
+                gTimeContext._pbytebuff[gTimeContext._u8_ixw] = 0;
+            }
             gTimeContext._u8_ixw = 0;
             gTimeContext._i32_error_count -= GPStimeProcNMEAsentence();
         }
@@ -228,32 +288,57 @@ int GPStimeProcNMEAsentence(void)
 
     if(prmc)
     {
-
+        /* N2GF: (1) verify the NMEA checksum - a sentence corrupted by RF pickup on
+           the UART line could otherwise set a wrong time or position;
+           (2) field offsets are now relative to prmc (they were relative to the
+           buffer start but used relative to prmc);
+           (3) longitude sign used the N/S field instead of E/W, so West longitudes
+           came out East and the GPS-derived locator was wrong in the Americas. */
+        const uint8_t *pend = gTimeContext._pbytebuff + sizeof(gTimeContext._pbytebuff);
+        const uint8_t *pstar = prmc + 1;
+        uint8_t chk = 0;
+        while(pstar < pend && *pstar && *pstar != '*')
+        {
+            chk ^= *pstar++;
+        }
+        if(pstar + 2 >= pend || *pstar != '*')
+        {
+            ++gTimeContext._time_data._u32_nmea_bad_count;
+            return -4;
+        }
+        {
+            char hx[3] = { (char)pstar[1], (char)pstar[2], 0 };
+            char *pe = NULL;
+            const long want = strtol(hx, &pe, 16);
+            if(pe != hx + 2 || want != chk)
+            {
+                ++gTimeContext._time_data._u32_nmea_bad_count;
+                return -5;
+            }
+        }
 
         ++gTimeContext._time_data._u32_nmea_gprmc_count;
 
         uint64_t tm_fix = GetUptime64();
+        const uint64_t pps_at_fix = gu64_pps_time_us;
         uint32_t u8ixcollector[32] = {0};
-        uint8_t chksum = 0;
-        uint32_t paramaterCount;
-        uint32_t index;
+        uint32_t paramaterCount = 0;
+        const uint32_t len = (uint32_t)(pstar - prmc);
 
-        for(index = 0, paramaterCount = 0; index != sizeof(gTimeContext._pbytebuff); ++index)
+        for(uint32_t index = 0; index < len && paramaterCount < 32; ++index)
         {
-            uint8_t *p = gTimeContext._pbytebuff + index;
-            chksum ^= *p;
-            if(',' == *p)
+            if(',' == prmc[index])
             {
-                *p = 0;
+                prmc[index] = 0;
                 u8ixcollector[paramaterCount++] = index + 1;
-                if('*' == *p || 32 == paramaterCount)
-                {
-                    break;
-                }
             }
         }
-        
-        paramaterCount--;//
+        prmc[len] = 0;   /* terminate the last field at '*' */
+
+        if(paramaterCount < 9)
+        {
+            return -6;
+        }
 
         gTimeContext._time_data._u8_is_solution_active = 'A' == prmc[u8ixcollector[1]];
 
@@ -284,20 +369,26 @@ int GPStimeProcNMEAsentence(void)
             mins = mins + degMins;
             gTimeContext._time_data.lon = (double) degs + mins/60.f;
             
-            if('E' == prmc[u8ixcollector[3]]) 
+            if('W' == prmc[u8ixcollector[5]]) 
             {
-                gTimeContext._time_data.lon *= -1;// South are negative deg
+                gTimeContext._time_data.lon *= -1;// West are negative deg
             }
 
-            if('*' != prmc[u8ixcollector[paramaterCount] + 1])
+            snprintf((char *)gTimeContext._time_data.lastRMCDateTime, sizeof(gTimeContext._time_data.lastRMCDateTime),
+                     "%.8s %.10s", (char *)(prmc + u8ixcollector[8]), (char *)(prmc + u8ixcollector[0]));
+
+            const uint32_t ut = GPStime2UNIX((const char *)prmc + u8ixcollector[8], (const char *)prmc + u8ixcollector[0]);
+            if(ut)
             {
-                return -4;
+                gTimeContext._time_data._u32_utime_nmea_last = ut;
+                gTimeContext._time_data._u64_sysclk_nmea_last = tm_fix;
+                /* The RMC reports the second that began at the PPS edge before it.
+                   Use that edge if it is recent (< 1.2 s), else estimate from the
+                   sentence arrival time (RMC usually arrives 0.1..0.9 s after PPS). */
+                gTimeContext._time_data._u64_pps_of_nmea_last =
+                    (pps_at_fix && (tm_fix - pps_at_fix) < 1200000ULL) ? pps_at_fix
+                                                                         : (tm_fix > 500000ULL ? tm_fix - 500000ULL : 1);
             }
-
-            sprintf((char *)gTimeContext._time_data.lastRMCDateTime, "%s %s", (char *)(prmc + u8ixcollector[8]), (char *)(prmc + u8ixcollector[0]));
-
-            gTimeContext._time_data._u32_utime_nmea_last = GPStime2UNIX(prmc + u8ixcollector[8], prmc + u8ixcollector[0]);
-            gTimeContext._time_data._u64_sysclk_nmea_last = tm_fix;
         }
     }
     

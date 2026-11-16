@@ -1,0 +1,48 @@
+;//////////////////////////////////////////////////////////////////////////////
+;  dco3.pio - "fine" PIO back end for the pico-hf-oscillator DCO.
+;
+;  N2GF / pico-WSPR-tx-enhanced 10 m port (2026).  MIT licence, as the rest of
+;  pico-hf-oscillator.
+;
+;  dco2.pio uses ONE 32-bit delay value for FOUR consecutive half periods, so
+;  the dithering that produces the fractional frequency moves the output phase
+;  in steps of 4 system-clock cycles.  At 28 MHz that is ~0.4 of an RF cycle and
+;  gives very strong spurs.  Here every FIFO word carries four separate 8-bit
+;  counts (LSB first), one per half period, so the worker can spread the
+;  dither and the phase moves in steps of 1 system-clock cycle.
+;
+;  Half period = 1 (OUT) + (count + 1) (JMP loop) = count + 2 PIO cycles.
+;  The output pin is driven with side-set, so no extra SET instruction is
+;  needed: minimum half period is 2 cycles (f <= sysclk / 4 for the PIO; the
+;  CPU worker is the practical limit, see piodco.c).
+;//////////////////////////////////////////////////////////////////////////////
+.program dco3
+.side_set 1
+
+.wrap_target
+    out x, 8        side 1
+H0:
+    jmp x-- H0      side 1
+    out x, 8        side 0
+H1:
+    jmp x-- H1      side 0
+.wrap
+
+% c-sdk {
+#define PIOASM_DCO3_DELAY_CYCLES 2
+
+static inline void dco3_program_init(PIO pio, uint sm, uint offset, uint pin)
+{
+    pio_sm_config c = dco3_program_get_default_config(offset);
+
+    sm_config_set_out_shift(&c, true, true, 32);           // Shift right, autopull 32 bits.
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);          // 8-deep TX FIFO.
+    sm_config_set_sideset_pins(&c, pin);
+    sm_config_set_clkdiv_int_frac(&c, 1u, 0u);
+
+    pio_gpio_init(pio, pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+
+    pio_sm_init(pio, sm, offset, &c);
+}
+%}

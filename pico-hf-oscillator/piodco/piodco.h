@@ -121,5 +121,13 @@ void PioDCOSetMode(PioDco *pdco, enum PioDcoMode emode);
 
 void RAM (PioDCOWorker)(PioDco *pDCO);
 void RAM (PioDCOWorker2)(PioDco *pDCO);
+#ifndef WSPR_DCO_FINE
+#define WSPR_DCO_FINE 0
+#endif
+#if WSPR_DCO_FINE
+void RAM (PioDCOWorker3)(PioDco *pDCO);
+#endif
+uint32_t PioDCOMaxFreqHz(void);
+int PioDCOUnderrun(const PioDco *pdco);
 
 #endif

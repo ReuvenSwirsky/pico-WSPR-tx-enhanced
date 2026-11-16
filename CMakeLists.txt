@@ -35,6 +35,21 @@ project(pico-wspr-tx-enhanced C CXX ASM)
 pico_sdk_init()
 add_executable(pico-wspr-tx-enhanced)
 pico_generate_pio_header(pico-wspr-tx-enhanced ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/piodco/dco2.pio)
+pico_generate_pio_header(pico-wspr-tx-enhanced ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/piodco/dco3.pio)
+
+# N2GF build options --------------------------------------------------------
+# WSPR_SYSCLK_MHZ : system clock in MHz (empty = original 200 MHz). DCO max = sysclk/8.
+#                   e.g. -DPICO_BOARD=pico2 -DWSPR_SYSCLK_MHZ=288 for 10 m on a Pico 2.
+# WSPR_DCO_FINE   : 1 = dco3.pio back end (per-half-period counts, ~4x lower spurs),
+#                   0 = original dco2.pio back end (default).
+set(WSPR_SYSCLK_MHZ "" CACHE STRING "System clock in MHz (empty = original 200 MHz)")
+set(WSPR_DCO_FINE 0 CACHE STRING "1 = fine dco3.pio DCO back end, 0 = original dco2.pio")
+if (NOT "${WSPR_SYSCLK_MHZ}" STREQUAL "")
+  target_compile_definitions(pico-wspr-tx-enhanced PRIVATE WSPR_SYSCLK_MHZ=${WSPR_SYSCLK_MHZ})
+  message(STATUS "N2GF: WSPR_SYSCLK_MHZ=${WSPR_SYSCLK_MHZ}")
+endif()
+target_compile_definitions(pico-wspr-tx-enhanced PRIVATE WSPR_DCO_FINE=${WSPR_DCO_FINE})
+message(STATUS "N2GF: WSPR_DCO_FINE=${WSPR_DCO_FINE}")
 
 target_sources(pico-wspr-tx-enhanced PUBLIC
 	             ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/lib/assert.c
@@ -72,6 +87,8 @@ target_include_directories(pico-wspr-tx-enhanced PRIVATE
 
 target_link_libraries(pico-wspr-tx-enhanced
                       pico_stdlib
+                      hardware_flash
+                      hardware_vreg
                       pico_sync
                       pico_multicore
                       hardware_timer

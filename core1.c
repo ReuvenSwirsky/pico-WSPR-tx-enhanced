@@ -64,17 +64,20 @@ void Core1Entry()
 {
     assert_(pWSPR);
 
-    const uint32_t clkhz = PLL_SYS_MHZ * MHz;
-
     PioDco *p = pWSPR->_pTX->_p_oscillator;
     assert_(p);
 
     /* Initialize DCO */
     assert_(0 == PioDCOInit(p, pWSPR->_pTX->_i_tx_gpio));
 
-    /* Set initial freq. */
-    assert_(0 == PioDCOSetFreq(p, pWSPR->_pTX->_u32_Txfreqhz, 0U));
+    /* Set initial freq. (N2GF: may fail if the band is above PioDCOMaxFreqHz();
+       main() reports that and refuses to transmit.) */
+    PioDCOSetFreq(p, pWSPR->_pTX->_u32_Txfreqhz, 0U);
 
     /* Run the main DCO algorithm. It spins forever. */
+#if WSPR_DCO_FINE
+    PioDCOWorker3(p);
+#else
     PioDCOWorker2(p);
+#endif
 }

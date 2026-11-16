@@ -100,6 +100,8 @@ typedef struct
     uint8_t _ix_last;                           /* An index of last write to sliding window. */
 
     int64_t _i32_freq_shift_ppb;                /* Calcd frequency shift, parts per billion. */
+    uint64_t _u64_pps_of_nmea_last;             /* N2GF: PPS edge time (us) the last RMC refers to. */
+    uint32_t _u32_nmea_bad_count;               /* N2GF: RMC sentences with a bad checksum. */
     char lastRMCDateTime[256];
 
 } GPStimeData;
@@ -127,6 +129,10 @@ int GPStimeProcNMEAsentence(void);
 void RAM (GPStimePPScallback)(uint gpio, uint32_t events);
 void RAM (GPStimeUartRxIsr)();
 int GPStimeGetTime(uint32_t *u32_tmdst);
+int GPStimeGetTimeAtUs(uint64_t t_us, uint32_t *u32_tmdst);
+extern volatile uint64_t gu64_pps_time_us;
+extern volatile uint32_t gu32_pps_count;
+extern volatile uint32_t gu32_pps_rejected;
 uint32_t GPStime2UNIX(const char *pdate, const char *ptime);
 void GPStimeDump(const GPStimeData *pd);
 
