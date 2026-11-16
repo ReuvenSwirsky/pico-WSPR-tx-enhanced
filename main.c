@@ -170,6 +170,15 @@ int main()
     pWB->_txSched._u8_tx_GPS_past_time  = CONFIG_GPS_RELY_ON_PAST_SOLUTION;
     pWB->_txSched._u8_tx_slot_skip      = settingsData.slotSkip + 1;
 
+    printf("Sys clock %lu MHz, DCO max %lu Hz, Tx %lu Hz\n",
+           (unsigned long)PLL_SYS_MHZ, (unsigned long)DCO_MAX_FREQ_HZ,
+           (unsigned long)pWB->_pTX->_u32_Txfreqhz);
+    if (pWB->_pTX->_u32_Txfreqhz > DCO_MAX_FREQ_HZ)
+    {
+        printf("WARNING: %lum band is above the %lu Hz limit of the %lu MHz system clock. RF output will be wrong.\n",
+               (unsigned long)bandNames[settingsData.bandIndex], (unsigned long)DCO_MAX_FREQ_HZ, (unsigned long)PLL_SYS_MHZ);
+    }
+
 
     multicore_launch_core1(Core1Entry);
 

@@ -147,7 +147,12 @@ int32_t PioDCOGetFreqShiftMilliHertz(const PioDco *pdco, uint64_t u64_desired_fr
 
     static int64_t i64_last_correction = 0;
     const int64_t dt = pdco->_pGPStime->_time_data._i32_freq_shift_ppb; /* Parts per billion. */
-    if(dt)
+
+    /* Sanity bound (2x the eMaxCLKdevPPM window the PPS filter accepts, in the
+       same scaled units as _i32_freq_shift_ppb): anything larger can only be
+       garbage. Ignoring it also keeps dt * kHz far away from int64 overflow. */
+    const int64_t i64_max_shift = (int64_t)eMaxCLKdevPPM * 2000000LL;
+    if(dt && dt > -i64_max_shift && dt < i64_max_shift)
     {
         i64_last_correction = dt;
     }

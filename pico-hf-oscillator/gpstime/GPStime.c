@@ -59,6 +59,11 @@
 //  THE SOFTWARE.
 ///////////////////////////////////////////////////////////////////////////////
 #include "GPStime.h"
+#include "defines.h"   /* project defines.h: GPS_PPS_FREQ_CORRECTION */
+
+#ifndef GPS_PPS_FREQ_CORRECTION
+#define GPS_PPS_FREQ_CORRECTION 1
+#endif
 
 GPStimeContext gTimeContext = {0};
 volatile static GPStimeData *spGPStimeData = NULL;
@@ -113,11 +118,13 @@ void RAM (GPStimePPScallback)(uint gpio, uint32_t events)
 {   
     ppsTriggered = true;// used by the foreground loop
 
-#ifdef FIX_BUGS_IN_THIS    
-// VK3KYY
-// This functionality seems to have bugs in it which cause it to return huge positive numbers
-// So I have currently disabled it via the ifdef
-
+#if GPS_PPS_FREQ_CORRECTION
+    /* Measures the Pico crystal error against GPS PPS over a sliding window of
+       eSlidingLen seconds and keeps a filtered estimate in parts per billion.
+       All arithmetic is done in signed 64-bit: the original code subtracted the
+       nominal period from a uint64_t and then divided as unsigned, so a crystal
+       running slow (negative error) wrapped to ~5.8e17 ppb, which in turn
+       overflowed the int64 multiply in PioDCOGetFreqShiftMilliHertz(). */
     if(spGPStimeData)
     {    
         const uint64_t tm64 = GetUptime64();
@@ -125,33 +132,35 @@ void RAM (GPStimePPScallback)(uint gpio, uint32_t events)
         ++spGPStimeData->_ix_last;
         spGPStimeData->_ix_last %= eSlidingLen;
 
-        const int64_t dt_per_window = tm64 - spGPStimeData->_pu64_sliding_pps_tm[spGPStimeData->_ix_last];
+        const uint64_t tm64_window_start = spGPStimeData->_pu64_sliding_pps_tm[spGPStimeData->_ix_last];
         spGPStimeData->_pu64_sliding_pps_tm[spGPStimeData->_ix_last] = tm64;
 
-        if(ABS(dt_per_window - eCLKperTimeMark * eSlidingLen) < eMaxCLKdevPPM * eSlidingLen)
+        /* Need a full window of real PPS timestamps before the period means anything. */
+        if(0 == tm64_window_start)
         {
-            if(spGPStimeData->_u64_pps_period_1M)
+            return;
+        }
+
+        const int64_t dt_per_window = (int64_t)(tm64 - tm64_window_start);
+        const int64_t nominal_window = (int64_t)eCLKperTimeMark * eSlidingLen;
+
+        if(ABS(dt_per_window - nominal_window) < (int64_t)eMaxCLKdevPPM * eSlidingLen)
+        {
+            const int64_t period_1M = (int64_t)eDtUpscale * dt_per_window;
+            int64_t filtered = (int64_t)spGPStimeData->_u64_pps_period_1M;
+
+            if(filtered)
             {
-                spGPStimeData->_u64_pps_period_1M += iSAR64((int64_t)eDtUpscale * dt_per_window 
-                                                            - spGPStimeData->_u64_pps_period_1M + 2, 2);
-                spGPStimeData->_i32_freq_shift_ppb = (spGPStimeData->_u64_pps_period_1M
-                                                      - (int64_t)eDtUpscale * eCLKperTimeMark * eSlidingLen
+                filtered += iSAR64(period_1M - filtered + 2, 2);
+                spGPStimeData->_u64_pps_period_1M = (uint64_t)filtered;
+                spGPStimeData->_i32_freq_shift_ppb = (filtered - (int64_t)eDtUpscale * nominal_window
                                                       + (eSlidingLen >> 1)) / eSlidingLen;
             }
             else
             {
-                spGPStimeData->_u64_pps_period_1M = (int64_t)eDtUpscale * dt_per_window;
+                spGPStimeData->_u64_pps_period_1M = (uint64_t)period_1M;
             }
         }
-
-
-#ifdef NOP
-        const int64_t dt_1M = (dt_per_window + (eSlidingLen >> 1)) / eSlidingLen;
-        const uint64_t tmp = (spGPStimeData->_u64_pps_period_1M + (eSlidingLen >> 1)) / eSlidingLen;
-        printf("%llu %lld %llu %lld\n", spGPStimeData->_u64_sysclk_pps_last, dt_1M, tmp, 
-               spGPStimeData->_i32_freq_shift_ppb);
-#endif
-
     }
 #endif    
 }

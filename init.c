@@ -56,14 +56,35 @@
 #include "pico/stdlib.h"
 #include "hardware/clocks.h"
 #include "hardware/vreg.h"
+#if PICO_RP2350
+#include "hardware/structs/qmi.h"
+#endif
 #include "defines.h"
 
+#if PICO_RP2350
+/// @brief Sets the QSPI flash clock divider (flash clock = clk_sys / clkdiv).
+/// Must run from RAM because it changes the timing of the XIP interface we
+/// would otherwise be executing from.
+static void __no_inline_not_in_flash_func(SetFlashClkDiv)(uint32_t clkdiv)
+{
+    hw_write_masked(&qmi_hw->m[0].timing,
+                    clkdiv << QMI_M0_TIMING_CLKDIV_LSB,
+                    QMI_M0_TIMING_CLKDIV_BITS);
+}
+#endif
 
 /// @brief Initializes Pi pico low level hardware.
 void InitPicoHW(void)
 {
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+
+#if PICO_RP2350
+    /* The Pico 2 board file uses flash clkdiv 2, which would clock the W25Q32
+       at 150 MHz when clk_sys is 300 MHz (its limit is 133 MHz). Divide by 3
+       -> 100 MHz. Done before raising clk_sys so the flash never runs out of spec. */
+    SetFlashClkDiv(3);
+#endif
 
     if (PLL_SYS_MHZ > 125)
     {
@@ -74,8 +95,13 @@ void InitPicoHW(void)
     const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
     set_sys_clock_khz(clkhz / kHz, true);
 
+#if !PICO_RP2350
     clock_configure(clk_peri, 0,
                     CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS,
                     PLL_SYS_MHZ * MHZ,
                     PLL_SYS_MHZ * MHZ);
+#endif
+    /* On RP2350 clk_peri is left where set_sys_clock_khz() puts it (48 MHz from
+       the USB PLL) rather than running the UART from a 300 MHz peripheral clock.
+       The PIO DCO runs from clk_sys and is unaffected. */
 }

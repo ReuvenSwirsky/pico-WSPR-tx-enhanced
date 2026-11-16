@@ -44,7 +44,7 @@ Enhancements and modifications by VK3KYY December 2025
 5. Changed memory allocation to be static as dymanic memory allocation is generally avoided in firmware applications
 6. Automatic detection of GPS module if attached. Otherwise default to external button press
 7. Hold external button when connecting Pico to USB forces settings entry so changes can be made
-8. Currently removed the overclocking, as the firmware would not run on many Pico boards when overclocked. Note this theoretically limits the highest freq to around 10MHz, but higher freqs still seem to work.
+8. Overclocking is 200MHz on the original Pico (RP2040), as the original 270MHz would not run on many Pico boards. This limits the highest usable band to 15m (the PIO oscillator needs at least 4 clocks per RF half cycle, so max RF = sysclock / 8 = 25MHz). On the Pico 2 (RP2350) the system clock is 300MHz, which covers 10m with margin (see "Pico 2 / 10m" below).
 9. Add frequency hoping option to settings
 10. Added frequency calibration to settings for use when not connected to GPS that provides frequency calibration
 11. Fixed bug with initial part of transmission was sending the last data 'symbol' from the last transmission
@@ -55,20 +55,34 @@ Enhancements and modifications by VK3KYY December 2025
 16. Added functionality to use GPS to set the Maidenhead locator.
 17. Added CW Beacon functionality
 18. Added Slow Morse functionality which sends 5 figure letter / number groups
+19. Pico 2 (RP2350) now runs at 300MHz so that 12m and 10m work. No pinout changes - it is a drop-in replacement for a Pico 1 build.
+20. Re-enabled the GPS PPS frequency calibration (it had been disabled because it produced huge bogus values). The bug was a signed/unsigned mix-up in GPStime.c: when the Pico crystal runs slow the (negative) error was divided as an unsigned 64-bit number and came out as ~+5.8e17 ppb, which then overflowed the correction multiply in piodco.c. Both are fixed and the correction is now bounded. It can be turned off with GPS_PPS_FREQ_CORRECTION in defines.h.
+21. The firmware now prints the system clock, the oscillator frequency limit and the Tx frequency at boot, and warns if the selected band is above the limit.
 
 
 Still to do. 
 
-1. Add option to overclock to higher frequencies. Specifically 270Mhz as in the original code, and higher than 270MHz to provide better RF generation
-2. Implement multi-band option
-3. Implement FT8
-4. Implement APRS
+1. Multi-band option
+2. Implement FT8
+3. Implement APRS
 
-KNOWN BUGS!
-1. The firmware seems to hang / crash on frequencies above the 20MHz band when using the GPS.  
-I checked the original code and it also does this. Hence the problem does not seem to be related to my changes
-2. Overclocking has been reduced to 200MHz, which limits the maximum theoretical freq output to the 15m band, but it may still work above that freq.
-The overclocking was reduced because the original 270MHz does not work all Pico boards, especially the Chinese clones 
+KNOWN BUGS / LIMITATIONS
+1. On the original Pico (RP2040) at 200MHz, bands above 20m are marginal and were observed to fail when the GPS is in use. This is NOT caused by the frequency correction math (that was already compiled out when it was observed). The cause is timing: core 1 has to feed the PIO one word every 2 RF cycles, which at 200MHz is 22 CPU cycles on 17m and 19 on 15m, while the feed loop itself needs about 17. Any extra bus activity from core 0 (GPS UART interrupts at ~1kHz, NMEA parsing, debug printing every second) is enough to starve the PIO FIFO and the output goes off frequency. On the Pico 2 at 300MHz the budget on 10m is 21 cycles against a ~13 cycle loop, so there is real margin. If you need 17m/15m with GPS on an RP2040, try PLL_SYS_MHZ_OVERCLOCK_270MHZ in defines.h (not all boards will run it).
+2. 12m and 10m are not possible on the RP2040 at 200MHz (above sysclock / 8). The boot message will warn you.
+
+
+Pico 2 / 10m
+
+The RP2350 build runs the system clock at 300MHz (core voltage 1.20V). Because the QSPI flash clock is derived from the system clock, the flash divider is changed from 2 to 3 before the clock is raised so the flash stays at 100MHz (within the W25Q32 133MHz limit). The peripheral clock is left at 48MHz. All of this is selected automatically by the PICO_RP2350 define; the RP2040 build is unchanged.
+
+To build for a Pico 2, either use the Pico VS Code extension's "Switch Board" and select pico2, or from a command line:
+
+    cmake -S . -B build-pico2 -G Ninja -DCMAKE_BUILD_TYPE=Release -DPICO_BOARD=pico2
+    ninja -C build-pico2
+
+then flash build-pico2/pico-wspr-tx-enhanced.uf2. Set BAND 10 in the settings.
+
+If a particular board does not come up at 300MHz, lower PLL_SYS_MHZ_OVERCLOCK_300MHZ in defines.h (250MHz still allows 10m, but with less margin), or try VREG_VOLTAGE_1_25 in init.c.
 
 
 Quickstart

@@ -90,10 +90,27 @@
 
 #define kHz 1000UL                                                /* Freq. */
 #define MHz 1000000UL
+#define PLL_SYS_MHZ_OVERCLOCK_300MHZ 300UL
 #define PLL_SYS_MHZ_OVERCLOCK_270MHZ 270UL
 #define PLL_SYS_MHZ_OVERCLOCK_200MHZ 200UL
 #define PLL_SYS_MHZ_DEFAULT 125UL
+
+/* The PIO DCO needs at least 4 PIO clocks per RF half-cycle, so the highest
+   usable RF frequency is PLL_SYS_MHZ / 8. 200 MHz -> 25 MHz (15m is the top
+   band), 300 MHz -> 37.5 MHz (covers 10m).
+   RP2040: 270 MHz is not reliable on many boards (clone flash / silicon), so
+   stay at 200 MHz. RP2350 (Pico 2): 300 MHz is well within what the silicon
+   does; see InitPicoHW() for the flash clock and core voltage handling. */
+#if PICO_RP2350
+#define PLL_SYS_MHZ PLL_SYS_MHZ_OVERCLOCK_300MHZ
+#else
 #define PLL_SYS_MHZ PLL_SYS_MHZ_OVERCLOCK_200MHZ
+#endif
+#define DCO_MAX_FREQ_HZ ((PLL_SYS_MHZ * MHz) / 8UL)
+
+/* Use the GPS PPS to measure the crystal error and correct the Tx frequency
+   (and follow drift during Tx). Set to 0 to rely on the CALPPM setting only. */
+#define GPS_PPS_FREQ_CORRECTION 1
                                                              /* WSPR defs. */
 #define WSPR_FREQ_STEP_MILHZ    2930UL     /* FSK freq.bin (*2 this time). */
 #define WSPR_MAX_GPS_DISCONNECT_TM  \
