@@ -192,11 +192,16 @@ int main()
 
     handleSettings(buttonHeldAtBoot);
 
+    /* N2GF: frequency correction. CALPPM (crystal slow by N ppm => +N) is the fallback;
+       with GPS ON and GPSCAL ON the measured PPS correction replaces it once locked. */
+    gi32_dco_fallback_ppb = -settingsData.freqCalibrationPPM * 1000;
+    gb_dco_gpscal = (settingsData.gpsMode == GPS_MODE_ON) && SETTINGS_GPSCAL_ON();
+
     pWB = WSPRbeaconInit(
         settingsData.callsign,/* the Callsign. */
         settingsData.locator,/* the default QTH locator if GPS isn't used. */
         settingsData.outputPowerDbm,/* Tx power, dbm. */
-        bandFrequencies[settingsData.bandIndex] + ((bandFrequencies[settingsData.bandIndex] / 1E6) * settingsData.freqCalibrationPPM),// bottom of WSPR freq range
+        bandFrequencies[settingsData.bandIndex],// bottom of WSPR freq range (N2GF: CALPPM/GPS correction now applied in TxChannel)
         settingsData.initialOffsetInWSPRFreqRange,           /* the carrier freq. */
         settingsData.rfPin       /* RF output GPIO pin. */
         );

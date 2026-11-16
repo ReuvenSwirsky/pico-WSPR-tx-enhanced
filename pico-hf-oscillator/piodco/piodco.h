@@ -113,6 +113,10 @@ typedef struct
 int PioDCOInit(PioDco *pdco, int gpio);
 int PioDCOSetFreq(PioDco *pdco, uint32_t u32_frq_hz, int32_t u32_frq_millihz);
 int32_t PioDCOGetFreqShiftMilliHertz(const PioDco *pdco, uint64_t u64_desired_frq_millihz);
+/* N2GF: frequency-correction source (see piodco.c). */
+extern volatile bool    gb_dco_gpscal;
+extern volatile int32_t gi32_dco_fallback_ppb;
+int PioDCOCorrectionPpb(const PioDco *pdco, int32_t *ppb);   /* PPSCAL_NONE(=CALPPM)/LOCKED/HELD */
 
 void PioDCOStart(PioDco *pdco);
 void PioDCOStop(PioDco *pdco);

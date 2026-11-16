@@ -106,6 +106,7 @@ void settingsReadFromFlash(bool forceReset)
         settingsData.mode = MODE_CW_BEACON;
         settingsData.cwSpeed = 5;
         settingsData.txFreq = 7010000;//7.050Mhz        
+        settingsData.gpsCal = GPSCAL_MAGIC_ON;
 
         settingsWriteToFlash();
     }
@@ -204,6 +205,9 @@ bool settingsCheckSettings(void)
     }
 
     printf("CALPPM:%d\n", settingsData.freqCalibrationPPM);
+
+    printf("GPSCAL:%s%s\n", SETTINGS_GPSCAL_ON() ? "On" : "Off",
+           SETTINGS_GPSCAL_ON() ? " (GPS PPS calibration when locked, CALPPM otherwise)" : " (CALPPM only)");
 
     printf("RFPIN:%d\n", settingsData.rfPin);
 
@@ -447,6 +451,24 @@ void handleSettings(bool forceSettingsEntry)
                         settingsData.freqCalibrationPPM = atoi(value);
 
                         printf("\nSetting frequency calibration to %d ppm\n",settingsData.freqCalibrationPPM);
+                        settingsAreDirty = true;
+                        break;
+                    }
+
+                    if (strcmp("GPSCAL", key) == 0)
+                    {
+                        /* N2GF: GPS-PPS frequency calibration. CALPPM is still used until
+                           PPS has locked, and always when GPSCAL is OFF or GPS is OFF. */
+                        if (strcmp(value,"OFF") == 0)
+                        {
+                            settingsData.gpsCal = GPSCAL_MAGIC_OFF;
+                            printf("\nSetting GPS frequency calibration to Off\n");
+                        }
+                        else
+                        {
+                            settingsData.gpsCal = GPSCAL_MAGIC_ON;
+                            printf("\nSetting GPS frequency calibration to On\n");
+                        }
                         settingsAreDirty = true;
                         break;
                     }

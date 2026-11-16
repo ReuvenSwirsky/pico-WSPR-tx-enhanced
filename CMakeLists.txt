@@ -55,6 +55,7 @@ target_sources(pico-wspr-tx-enhanced PUBLIC
 	             ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/lib/assert.c
                ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/piodco/piodco.c
                ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/gpstime/GPStime.c
+               ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/gpstime/ppscal.c
                ${CMAKE_CURRENT_LIST_DIR}/TxChannel/TxChannel.c
                ${CMAKE_CURRENT_LIST_DIR}/WSPRbeacon/thirdparty/WSPRutility.c
                ${CMAKE_CURRENT_LIST_DIR}/WSPRbeacon/thirdparty/nhash.c

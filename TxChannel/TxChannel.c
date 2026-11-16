@@ -54,6 +54,15 @@ static TxChannelContext txChannelContext = {0};
 
 PioDco DCO = {0};
 
+/* N2GF: every frequency set goes through here so the GPS/CALPPM correction is also
+   applied to the carrier set-up and to CW, not only to WSPR symbols. */
+static void __not_in_flash_func(TxChannelApplyFreq)(int32_t millihz)
+{
+    const int32_t comp = PioDCOGetFreqShiftMilliHertz(txChannelContext._p_oscillator,
+                                                      (uint64_t)txChannelContext._u32_Txfreqhz * 1000ULL);
+    PioDCOSetFreq(txChannelContext._p_oscillator, txChannelContext._u32_Txfreqhz, millihz - 2 * comp);
+}
+
 /*
 #ifdef PICO_RP2040
     #define BARE_METAL_TIMER
@@ -73,12 +82,8 @@ static int64_t __not_in_flash_func (TxChannelISR)(alarm_id_t id, void *user_data
     const int n2send = TxChannelPop(&byte);
     if(n2send)
     {
-        const int32_t i32_compensation_millis = 
-            PioDCOGetFreqShiftMilliHertz(txChannelContext._p_oscillator, 
-                                         (uint64_t)(txChannelContext._u32_Txfreqhz * 1000LL));
-
-        PioDCOSetFreq(pDCO, txChannelContext._u32_Txfreqhz, 
-                      (uint32_t)byte * WSPR_FREQ_STEP_MILHZ - 2 * i32_compensation_millis);
+        (void)pDCO;
+        TxChannelApplyFreq((int32_t)byte * WSPR_FREQ_STEP_MILHZ);
 
 
 #ifdef BARE_METAL_TIMER
@@ -131,7 +136,7 @@ void TxChannelSetFrequency(uint32_t dialFreq, uint32_t offsetFreq)
     txChannelContext._u32_dialfreqhz = dialFreq;
     txChannelContext._u32_offsetfreqhz = offsetFreq;
     txChannelContext._u32_Txfreqhz =  txChannelContext._u32_dialfreqhz + (WSPR_FREQ_RANGE_HZ / 2) + txChannelContext._u32_offsetfreqhz;// set Tx freq to the middle of the WSPR Tx range +/- the offset
-    PioDCOSetFreq(txChannelContext._p_oscillator, txChannelContext._u32_Txfreqhz, 0);// Reset the freq.
+    TxChannelApplyFreq(0);// Reset the freq. (N2GF: corrected)
 
 }
 
@@ -139,7 +144,7 @@ void TxChannelSetOffsetFrequency(uint32_t offsetFreq)
 {
     txChannelContext._u32_offsetfreqhz = offsetFreq;
     txChannelContext._u32_Txfreqhz =  txChannelContext._u32_dialfreqhz + (WSPR_FREQ_RANGE_HZ / 2) + txChannelContext._u32_offsetfreqhz;// set Tx freq to the middle of the WSPR Tx range +/- the offset
-    PioDCOSetFreq(txChannelContext._p_oscillator, txChannelContext._u32_Txfreqhz, 0);// Reset the freq.
+    TxChannelApplyFreq(0);// Reset the freq. (N2GF: corrected)
 }
 
 void TxChannelStart(void)
@@ -170,7 +175,7 @@ void TxChannelStop(void)
 #else
     alarm_pool_cancel_alarm(txChannelContext.alarmPool, txChannelContext.alarmId);
 #endif    
-    PioDCOSetFreq(txChannelContext._p_oscillator, txChannelContext._u32_Txfreqhz, 0);// Reset the freq.
+    TxChannelApplyFreq(0);// Reset the freq. (N2GF: corrected)
     gpio_put(PICO_DEFAULT_LED_PIN, 0); // Turn off the LED
 }
 

@@ -72,6 +72,7 @@
 #include "../lib/assert.h"
 #include "../lib/utility.h"
 #include "../lib/thirdparty/strnstr.h"
+#include "ppscal.h"
 
 #define ASSERT_(x) assert_(x)
 
@@ -135,5 +136,8 @@ extern volatile uint32_t gu32_pps_count;
 extern volatile uint32_t gu32_pps_rejected;
 uint32_t GPStime2UNIX(const char *pdate, const char *ptime);
 void GPStimeDump(const GPStimeData *pd);
+
+/* N2GF: GPS-PPS frequency calibration state (updated in the PPS ISR). */
+extern PPSCal gPPSCal;
 
 #endif

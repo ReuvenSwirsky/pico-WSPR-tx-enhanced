@@ -33,7 +33,14 @@ typedef struct  {
     uint32_t    mode;
     uint32_t    cwSpeed;
     uint32_t    txFreq;
+    uint32_t    gpsCal;     /* N2GF: GPSCAL_MAGIC_ON / _OFF; anything else (older flash) = ON */
 } SettingsData;
+
+/* N2GF: magic values so adding this field does not need a CURRENT_VERSION bump
+   (which would wipe the callsign/band settings already in flash). */
+#define GPSCAL_MAGIC_ON   0x47430001u
+#define GPSCAL_MAGIC_OFF  0x47430000u
+#define SETTINGS_GPSCAL_ON() (settingsData.gpsCal != GPSCAL_MAGIC_OFF)
 
 enum gpsModes {GPS_MODE_OFF = 0, GPS_MODE_ON};
 enum operationModes {MODE_WSPR = 0, MODE_CW_BEACON, MODE_SLOW_MORSE, MODE_FT8, MODE_APRS, NUM_OPERATING_MODES};

@@ -229,31 +229,33 @@ int PioDCOSetFreq(PioDco *pdco, uint32_t ui32_frq_hz, int32_t ui32_frq_millihz)
 /// @param u64_desired_frq_millihz The frequency for which we want to calculate correction.
 /// @return The value of correction we need to subtract from desired freq. to compensate
 /// @return Pico's reference clock shift. 2854974.
+/* N2GF: correction source. gb_dco_gpscal: use the GPS-PPS measurement when it is valid
+   (locked, or held after PPS loss). Otherwise gi32_dco_fallback_ppb (= -CALPPM * 1000). */
+volatile bool    gb_dco_gpscal = false;
+volatile int32_t gi32_dco_fallback_ppb = 0;
+
+int PioDCOCorrectionPpb(const PioDco *pdco, int32_t *ppb)
+{
+    int32_t g;
+    if(gb_dco_gpscal && pdco && pdco->_pGPStime)
+    {
+        const int st = PPSCalGet(&gPPSCal, time_us_64(), &g);
+        if(st != PPSCAL_NONE)
+        {
+            *ppb = g;
+            return st;              /* PPSCAL_LOCKED or PPSCAL_HELD */
+        }
+    }
+    *ppb = gi32_dco_fallback_ppb;
+    return PPSCAL_NONE;             /* CALPPM */
+}
+
 int32_t PioDCOGetFreqShiftMilliHertz(const PioDco *pdco, uint64_t u64_desired_frq_millihz)
 {
-    assert_(pdco);
-    if(!pdco->_pGPStime)
-    {
-        return 0U;
-    }
-
-    static int64_t i64_last_correction = 0;
-    const int64_t dt = pdco->_pGPStime->_time_data._i32_freq_shift_ppb; /* Parts per billion. */
-    if(dt)
-    {
-        i64_last_correction = dt;
-    }
-
-    int32_t i32ret_millis;
-    if(i64_last_correction)
-    {
-        int64_t i64corr_coeff = (u64_desired_frq_millihz + 500000LL) / 1000000LL;
-        i32ret_millis = (i64_last_correction * i64corr_coeff + 50000LL) / 1000000LL;
-
-        return i32ret_millis;
-    }
-
-    return 0U;
+    int32_t ppb;
+    (void)PioDCOCorrectionPpb(pdco, &ppb);
+    /* +ve ppb = Pico clock fast: subtract f*ppb*1e-9. Clamped to +-100 ppm inside. */
+    return PPSCalShiftMilliHz(u64_desired_frq_millihz, ppb);
 }
 
 /// @brief Starts the DCO.

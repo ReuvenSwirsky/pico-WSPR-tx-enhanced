@@ -224,6 +224,14 @@ int WSPRbeaconTxScheduler(int verbose)
                        PioDCOUnderrun(becaconData._pTX->_p_oscillator) ? "YES (output was disturbed)" : "no",
                        (unsigned long)gu32_pps_count, (unsigned long)gu32_pps_rejected,
                        (unsigned long)becaconData._pTX->_p_oscillator->_pGPStime->_time_data._u32_nmea_bad_count);
+                {
+                    int32_t ppb;
+                    const int st = PioDCOCorrectionPpb(becaconData._pTX->_p_oscillator, &ppb);
+                    printf("WSPR> Freq corr: %+ld ppb (%s) windows:%lu ivl-rej:%lu win-rej:%lu outliers:%lu\n",
+                           (long)ppb, st == PPSCAL_LOCKED ? "GPS locked" : st == PPSCAL_HELD ? "GPS held, PPS lost" : "CALPPM",
+                           (unsigned long)gPPSCal.windows, (unsigned long)gPPSCal.n_ivl_reject,
+                           (unsigned long)gPPSCal.n_win_reject, (unsigned long)gPPSCal.n_outlier);
+                }
 
                 if (settingsData.frequencyHop)
                 {

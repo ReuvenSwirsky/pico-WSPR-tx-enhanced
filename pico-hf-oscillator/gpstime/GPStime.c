@@ -91,7 +91,9 @@ GPStimeContext *GPStimeInit(int uart_id, int uart_baud, int pps_gpio)
 
     gpio_init(pps_gpio);
     gpio_set_dir(pps_gpio, GPIO_IN);
+    PPSCalReset(&gPPSCal);
     gpio_set_irq_enabled_with_callback(pps_gpio, GPIO_IRQ_EDGE_RISE, true, &GPStimePPScallback);
+    irq_set_priority(IO_IRQ_BANK0, 0x40);   /* N2GF: PPS timestamp ahead of UART/alarm ISRs (less jitter) */
 
     uart_set_hw_flow(uart_id ? uart1 : uart0, false, false);
     uart_set_format(uart_id ? uart1 : uart0, 8, 1, UART_PARITY_NONE);
@@ -115,6 +117,7 @@ volatile bool ppsTriggered = false;
 volatile uint64_t gu64_pps_time_us = 0;      /* time_us_64() at last accepted PPS edge */
 volatile uint32_t gu32_pps_count = 0;        /* accepted PPS edges */
 volatile uint32_t gu32_pps_rejected = 0;     /* edges ignored by the filter */
+PPSCal gPPSCal;                              /* N2GF: safe PPS frequency calibration */
 
 static int64_t GPStimePPSRearm(alarm_id_t id, void *user_data)
 {
@@ -143,6 +146,14 @@ void RAM (GPStimePPScallback)(uint gpio, uint32_t events)
     }
     ppsTriggered = true;// used by the foreground loop
 
+    /* N2GF: safe replacement for the FIX_BUGS_IN_THIS block below (signed 64-bit,
+       full 32-interval windows only, +-100 ppm sanity, IIR + outlier reject, clamp). */
+    PPSCalOnEdge(&gPPSCal, now);
+    if(spGPStimeData)
+    {
+        spGPStimeData->_i32_freq_shift_ppb = gPPSCal.ppb;   /* for the status dumps only */
+    }
+
     gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_RISE, false);
     if(add_alarm_in_us(N2GF_PPS_REARM_US, GPStimePPSRearm, NULL, true) <= 0)
     {
@@ -153,6 +164,9 @@ void RAM (GPStimePPScallback)(uint gpio, uint32_t events)
 // VK3KYY
 // This functionality seems to have bugs in it which cause it to return huge positive numbers
 // So I have currently disabled it via the ifdef
+// N2GF: root cause = "_u64_pps_period_1M (uint64) - (int64)nominal" is evaluated unsigned, so a
+// slow crystal (period < nominal) wraps to 2^64/32 = 5.76e17 "ppb". Kept for reference only;
+// replaced by PPSCalOnEdge() above (ppscal.c). Do not enable.
 
     if(spGPStimeData)
     {    
