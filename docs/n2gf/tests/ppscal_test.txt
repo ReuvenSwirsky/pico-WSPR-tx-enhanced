@@ -1,0 +1,19 @@
+  normal   -60.0 ppm (t0=34.892): ppb= -60005  err=   -5 ppb
+  normal   -20.0 ppm (t0=34.598): ppb= -19979  err=  +21 ppb
+  normal    -5.0 ppm (t0= 9.698): ppb=  -4996  err=   +4 ppb
+  normal    -0.3 ppm (t0=32.894): ppb=   -298  err=   +2 ppb
+  normal    +0.0 ppm (t0=23.952): ppb=     -3  err=   -3 ppb
+  normal    +0.3 ppm (t0=17.724): ppb=    297  err=   -3 ppb
+  normal    +5.0 ppm (t0= 3.639): ppb=   5011  err=  +11 ppb
+  normal   +20.0 ppm (t0=34.504): ppb=  20011  err=  +11 ppb
+  normal   +60.0 ppm (t0=31.634): ppb=  59995  err=   -5 ppb
+  disturbed -12.5 ppm: ppb=-12502  ivl-rej=126 win-rej=0 outliers=0 relock=0
+  PPS lost 30 min: held -12502 ppb; after return: locked -12501 ppb
+   -180 ppm reference: rejected (falls back to CALPPM)
+   -120 ppm reference: rejected (falls back to CALPPM)
+   +120 ppm reference: rejected (falls back to CALPPM)
+   +300 ppm reference: rejected (falls back to CALPPM)
+  step -8 -> -3 ppm: within 150 ppb after 33 s (relocks=1)
+  end-to-end residual over +-100 ppm, 160-10 m: worst -0.000 Hz (rounding only)
+  fuzz: 200 x 5000 random edges, published value always within +-100 ppm
+ppscal_test: PASS

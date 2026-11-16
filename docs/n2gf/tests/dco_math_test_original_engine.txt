@@ -1,0 +1,48 @@
+== 1. DCO ceiling: f_max = sysclk/8 (half period >= 4 PIO cycles)
+   sysclk 125 MHz -> f_max 15.625 MHz
+   sysclk 200 MHz -> f_max 25.000 MHz
+   sysclk 270 MHz -> f_max 33.750 MHz
+   sysclk 276 MHz -> f_max 34.500 MHz
+   sysclk 300 MHz -> f_max 37.500 MHz
+
+== 2. si32precise_cycles sign and Worker2 output for every band (Tx = band + 100 Hz)
+   125 MHz  f= 18106100  precise=   -9196006 (NEGATIVE)  y=[0..255]  avg out=434716.649 Hz  <-- WRONG
+   125 MHz  f= 21096100  precise=  -17404132 (NEGATIVE)  y=[254..255]  avg out=241347.562 Hz  <-- WRONG
+   125 MHz  f= 24926100  precise=  -25041473 (NEGATIVE)  y=[254..255]  avg out=241772.565 Hz  <-- WRONG
+   125 MHz  f= 28126100  precise=  -29827620 (NEGATIVE)  y=[254..255]  avg out=242039.668 Hz  <-- WRONG
+   200 MHz  f= 21096100  precise=   12418707 (ok)  y=[0..1]  avg out=21096100.649 Hz  
+   200 MHz  f= 24926100  precise=     198962 (ok)  y=[0..1]  avg out=24926100.344 Hz  
+   200 MHz  f= 28126100  precise=   -7458873 (NEGATIVE)  y=[0..255]  avg out=852015.241 Hz  <-- WRONG
+   270 MHz  f= 21096100  precise=   40253357 (ok)  y=[2..3]  avg out=21096100.237 Hz  
+   270 MHz  f= 24926100  precise=   23756701 (ok)  y=[1..2]  avg out=24926101.034 Hz  
+   270 MHz  f= 28126100  precise=   13418623 (ok)  y=[0..1]  avg out=28126100.141 Hz  
+   276 MHz  f= 21096100  precise=   42639185 (ok)  y=[2..3]  avg out=21096100.649 Hz  
+   276 MHz  f= 24926100  precise=   25775936 (ok)  y=[1..2]  avg out=24926099.984 Hz  
+   276 MHz  f= 28126100  precise=   15208123 (ok)  y=[0..1]  avg out=28126100.109 Hz  
+   300 MHz  f= 21096100  precise=   52182493 (ok)  y=[3..4]  avg out=21096100.649 Hz  
+   300 MHz  f= 24926100  precise=   33852875 (ok)  y=[2..3]  avg out=24926100.344 Hz  
+   300 MHz  f= 28126100  precise=   22366122 (ok)  y=[1..2]  avg out=28126099.994 Hz  
+
+== 3. WSPR tone spacing at 28.1261 MHz, 300 MHz and 276 MHz sysclk (TxChannel.c:80-81)
+   276 MHz sym 0: quantised f=28126099.9993 Hz  (ideal 28126100.0000, err -0.0007 Hz)  step 0.0000 Hz  worker avg 28126100.109
+   276 MHz sym 1: quantised f=28126101.3660 Hz  (ideal 28126101.4648, err -0.0988 Hz)  step 1.3667 Hz  worker avg 28126101.542
+   276 MHz sym 2: quantised f=28126103.0744 Hz  (ideal 28126102.9296, err +0.1448 Hz)  step 1.7084 Hz  worker avg 28126103.262
+   276 MHz sym 3: quantised f=28126104.4411 Hz  (ideal 28126104.3944, err +0.0467 Hz)  step 1.3667 Hz  worker avg 28126104.695
+   frequency resolution (1 LSB of 2^24 half-period) at 28.126 MHz, 276 MHz: 0.342 Hz
+   300 MHz sym 0: quantised f=28126099.9583 Hz  (ideal 28126100.0000, err -0.0417 Hz)  step 0.0000 Hz  worker avg 28126099.994
+   300 MHz sym 1: quantised f=28126101.5300 Hz  (ideal 28126101.4648, err +0.0652 Hz)  step 1.5717 Hz  worker avg 28126101.576
+   300 MHz sym 2: quantised f=28126102.7874 Hz  (ideal 28126102.9296, err -0.1422 Hz)  step 1.2574 Hz  worker avg 28126102.895
+   300 MHz sym 3: quantised f=28126104.3591 Hz  (ideal 28126104.3944, err -0.0353 Hz)  step 1.5717 Hz  worker avg 28126104.477
+   frequency resolution (1 LSB of 2^24 half-period) at 28.126 MHz, 300 MHz: 0.314 Hz
+
+== 4. int32/int64 range of GPS ppb correction path vs frequency (piodco.c:158-159, TxChannel.c:76-81)
+   f=24926100 ppb=100000000000: int32 result -1802367296 != 2492600000  (TRUNCATED)
+   f=28126100 ppb=100000000000: int32 result -1482367296 != 2812600000  (TRUNCATED)
+   (only absurd ppb values >= ~1e11 truncate; realistic |ppb| < 250000 never do at any band)
+   units: result for 28.126 MHz, +1000 ppb = 28 "mHz" (a true 1 ppm offset is 28126 mHz)
+
+== 5. 32-bit hazards in 64-bit products used above 20 MHz
+   uint32 f*1000 would wrap: 2356296224  vs 64-bit 28126100000 (firmware uses 1000LL -> OK)
+   sysclk*2^24*1000 at 300 MHz = 5.033e+18 (int64 max 9.22e18, OK; limit sysclk < 549 MHz)
+
+RESULT: PASS (0 failures at >=276 MHz)

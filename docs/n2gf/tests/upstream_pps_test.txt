@@ -1,0 +1,111 @@
+== Original RPiks PPS correction: final 'ppb' field after 200 PPS ==
+  ppm= -20.00 t0= 2.30 mode=0 -> field=576460752283423488 (expected ~-20000000) bad_updates=167 worst=576460752283423488
+  ppm=  -5.00 t0= 2.30 mode=0 -> field=576460752298423488 (expected ~-5000000) bad_updates=167 worst=576460752298437160
+  ppm=  -0.50 t0= 2.30 mode=0 -> field=576460752302923488 (expected ~-500000) bad_updates=167 worst=576460752302923488
+  ppm=  +0.00 t0= 2.30 mode=0 -> field=0 (expected ~0) bad_updates=0 worst=0
+  ppm=  +0.50 t0= 2.30 mode=0 -> field=500000 (expected ~500000) bad_updates=0 worst=0
+  ppm=  +5.00 t0= 2.30 mode=0 -> field=5000000 (expected ~5000000) bad_updates=0 worst=0
+  ppm= +20.00 t0= 2.30 mode=0 -> field=20000000 (expected ~20000000) bad_updates=0 worst=0
+  ppm= -20.00 t0= 2.30 mode=1 -> field=576460752283423488 (expected ~-20000000) bad_updates=166 worst=576460752283423488
+  ppm=  -5.00 t0= 2.30 mode=1 -> field=576460752298423488 (expected ~-5000000) bad_updates=166 worst=576460752298423488
+  ppm=  -0.50 t0= 2.30 mode=1 -> field=576460752302923488 (expected ~-500000) bad_updates=166 worst=576460752302923488
+  ppm=  +0.00 t0= 2.30 mode=1 -> field=0 (expected ~0) bad_updates=0 worst=0
+  ppm=  +0.50 t0= 2.30 mode=1 -> field=500000 (expected ~500000) bad_updates=0 worst=0
+  ppm=  +5.00 t0= 2.30 mode=1 -> field=5000000 (expected ~5000000) bad_updates=0 worst=0
+  ppm= +20.00 t0= 2.30 mode=1 -> field=20000000 (expected ~20000000) bad_updates=0 worst=0
+  ppm= -20.00 t0= 2.30 mode=2 -> field=576460752283423488 (expected ~-20000000) bad_updates=167 worst=576460752283423488
+  ppm=  -5.00 t0= 2.30 mode=2 -> field=576460752298423488 (expected ~-5000000) bad_updates=167 worst=576460752298423488
+  ppm=  -0.50 t0= 2.30 mode=2 -> field=576460752302923488 (expected ~-500000) bad_updates=167 worst=576460752302923488
+  ppm=  +0.00 t0= 2.30 mode=2 -> field=0 (expected ~0) bad_updates=0 worst=0
+  ppm=  +0.50 t0= 2.30 mode=2 -> field=500000 (expected ~500000) bad_updates=0 worst=0
+  ppm=  +5.00 t0= 2.30 mode=2 -> field=5000000 (expected ~5000000) bad_updates=0 worst=0
+  ppm= +20.00 t0= 2.30 mode=2 -> field=20000000 (expected ~20000000) bad_updates=0 worst=0
+  ppm= -20.00 t0= 2.30 mode=3 -> field=576460752283424105 (expected ~-20000000) bad_updates=167 worst=576460752283481978
+  ppm=  -5.00 t0= 2.30 mode=3 -> field=576460752298424563 (expected ~-5000000) bad_updates=167 worst=576460752298489857
+  ppm=  -0.50 t0= 2.30 mode=3 -> field=576460752302886101 (expected ~-500000) bad_updates=167 worst=576460752303032863
+  ppm=  +0.00 t0= 2.30 mode=3 -> field=576460752303413839 (expected ~0) bad_updates=83 worst=576460752303423321
+  ppm=  +0.50 t0= 2.30 mode=3 -> field=462929 (expected ~500000) bad_updates=0 worst=0
+  ppm=  +5.00 t0= 2.30 mode=3 -> field=5028972 (expected ~5000000) bad_updates=0 worst=0
+  ppm= +20.00 t0= 2.30 mode=3 -> field=19980116 (expected ~20000000) bad_updates=0 worst=0
+
+== Startup: first window compares against zeroed slots (dt = uptime) ==
+  first PPS at uptime 31.990 s -> period seeded=0 (rejected)
+  first PPS at uptime 31.995 s -> period seeded=31995000000000 (ACCEPTED bogus seed)
+  first PPS at uptime 32.000 s -> period seeded=32000000000000 (ACCEPTED bogus seed)
+  first PPS at uptime 32.005 s -> period seeded=32005000000000 (ACCEPTED bogus seed)
+  first PPS at uptime 32.010 s -> period seeded=0 (rejected)
+
+== Effect on transmitted frequency (TxChannel: f + (sym*2930 - 2*comp)/2000 Hz) ==
+ crystal -20.00 ppm (field=576460752283423488):
+     1838100 Hz: comp=  206946303 mHz  out err= -206978.926 Hz   <-- OFF FREQUENCY
+     3570100 Hz: comp= -207054463 mHz  out err= +206978.920 Hz   <-- OFF FREQUENCY
+     7040100 Hz: comp=    -140799 mHz  out err=      -0.005 Hz 
+    10140200 Hz: comp=  554225939 mHz  out err= -554417.658 Hz   <-- OFF FREQUENCY
+    14097100 Hz: comp=-1142399643 mHz  out err=-1005345.845 Hz   <-- OFF FREQUENCY
+    18106100 Hz: comp=-1316202660 mHz  out err= -831626.484 Hz   <-- OFF FREQUENCY
+    21096100 Hz: comp=-1109279397 mHz  out err=-1038605.408 Hz   <-- OFF FREQUENCY
+    24926100 Hz: comp=-1870767798 mHz  out err= -277208.837 Hz   <-- OFF FREQUENCY
+    28126100 Hz: comp=-1870831798 mHz  out err= -277208.838 Hz   <-- OFF FREQUENCY >200MHz/8 ceiling
+ crystal  -5.00 ppm (field=576460752298423488):
+     1838100 Hz: comp=  206973873 mHz  out err= -206982.028 Hz   <-- OFF FREQUENCY
+     3570100 Hz: comp= -207000913 mHz  out err= +206982.028 Hz   <-- OFF FREQUENCY
+     7040100 Hz: comp=     -35199 mHz  out err=      -0.001 Hz 
+    10140200 Hz: comp=  554378039 mHz  out err= -554425.968 Hz   <-- OFF FREQUENCY
+    14097100 Hz: comp=-1142188188 mHz  out err=-1005360.918 Hz   <-- OFF FREQUENCY
+    18106100 Hz: comp=-1315931070 mHz  out err= -831638.950 Hz   <-- OFF FREQUENCY
+    21096100 Hz: comp=-1108962957 mHz  out err=-1038620.978 Hz   <-- OFF FREQUENCY
+    24926100 Hz: comp=-1870393908 mHz  out err= -277212.984 Hz   <-- OFF FREQUENCY
+    28126100 Hz: comp=-1870409908 mHz  out err= -277212.985 Hz   <-- OFF FREQUENCY >200MHz/8 ceiling
+ crystal  -0.50 ppm (field=576460752302923488):
+     1838100 Hz: comp=  206982144 mHz  out err= -206982.959 Hz   <-- OFF FREQUENCY
+     3570100 Hz: comp= -206984848 mHz  out err= +206982.960 Hz   <-- OFF FREQUENCY
+     7040100 Hz: comp=      -3519 mHz  out err=      -0.000 Hz 
+    10140200 Hz: comp=  554423669 mHz  out err= -554428.461 Hz   <-- OFF FREQUENCY
+    14097100 Hz: comp=-1142124751 mHz  out err=-1005365.442 Hz   <-- OFF FREQUENCY
+    18106100 Hz: comp=-1315849593 mHz  out err= -831642.692 Hz   <-- OFF FREQUENCY
+    21096100 Hz: comp=-1108868025 mHz  out err=-1038625.651 Hz   <-- OFF FREQUENCY
+    24926100 Hz: comp=-1870281741 mHz  out err= -277214.231 Hz   <-- OFF FREQUENCY
+    28126100 Hz: comp=-1870283341 mHz  out err= -277214.231 Hz   <-- OFF FREQUENCY >200MHz/8 ceiling
+ crystal  +0.00 ppm (field=0):
+     1838100 Hz: comp=          0 mHz  out err=      +0.001 Hz 
+     3570100 Hz: comp=          0 mHz  out err=      +0.001 Hz 
+     7040100 Hz: comp=          0 mHz  out err=      +0.001 Hz 
+    10140200 Hz: comp=          0 mHz  out err=      +0.001 Hz 
+    14097100 Hz: comp=          0 mHz  out err=      +0.001 Hz 
+    18106100 Hz: comp=          0 mHz  out err=      +0.001 Hz 
+    21096100 Hz: comp=          0 mHz  out err=      +0.001 Hz 
+    24926100 Hz: comp=          0 mHz  out err=      +0.001 Hz 
+    28126100 Hz: comp=          0 mHz  out err=      +0.001 Hz  >200MHz/8 ceiling
+ crystal  +0.50 ppm (field=500000):
+     1838100 Hz: comp=        919 mHz  out err=      +0.001 Hz 
+     3570100 Hz: comp=       1785 mHz  out err=      +0.001 Hz 
+     7040100 Hz: comp=       3520 mHz  out err=      +0.001 Hz 
+    10140200 Hz: comp=       5070 mHz  out err=      +0.001 Hz 
+    14097100 Hz: comp=       7048 mHz  out err=      +0.001 Hz 
+    18106100 Hz: comp=       9053 mHz  out err=      +0.001 Hz 
+    21096100 Hz: comp=      10548 mHz  out err=      +0.001 Hz 
+    24926100 Hz: comp=      12463 mHz  out err=      +0.001 Hz 
+    28126100 Hz: comp=      14063 mHz  out err=      +0.001 Hz  >200MHz/8 ceiling
+ crystal  +5.00 ppm (field=5000000):
+     1838100 Hz: comp=       9190 mHz  out err=      +0.001 Hz 
+     3570100 Hz: comp=      17850 mHz  out err=      +0.001 Hz 
+     7040100 Hz: comp=      35200 mHz  out err=      +0.001 Hz 
+    10140200 Hz: comp=      50700 mHz  out err=      +0.001 Hz 
+    14097100 Hz: comp=      70485 mHz  out err=      +0.001 Hz 
+    18106100 Hz: comp=      90530 mHz  out err=      +0.001 Hz 
+    21096100 Hz: comp=     105480 mHz  out err=      +0.001 Hz 
+    24926100 Hz: comp=     124630 mHz  out err=      +0.000 Hz 
+    28126100 Hz: comp=     140630 mHz  out err=      +0.000 Hz  >200MHz/8 ceiling
+ crystal +20.00 ppm (field=20000000):
+     1838100 Hz: comp=      36760 mHz  out err=      +0.002 Hz 
+     3570100 Hz: comp=      71400 mHz  out err=      +0.001 Hz 
+     7040100 Hz: comp=     140800 mHz  out err=      -0.000 Hz 
+    10140200 Hz: comp=     202800 mHz  out err=      +0.001 Hz 
+    14097100 Hz: comp=     281940 mHz  out err=      -0.003 Hz 
+    18106100 Hz: comp=     362120 mHz  out err=      -0.005 Hz 
+    21096100 Hz: comp=     421920 mHz  out err=      -0.006 Hz 
+    24926100 Hz: comp=     498520 mHz  out err=      -0.007 Hz 
+    28126100 Hz: comp=     562520 mHz  out err=      -0.009 Hz  >200MHz/8 ceiling
+
+BUG REPRODUCED: 24 of 27 (slow-crystal x band) cases transmit >1 kHz off frequency; fast crystals are corrected correctly.
+No divide-by-zero possible: SetFreq denominator 2000*f + m > 0 for any int32 m when f > 1.074 MHz.

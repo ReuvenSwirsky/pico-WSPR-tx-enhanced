@@ -1,0 +1,52 @@
+== sysclk 288 MHz (max RF sysclk/8 = 36.000 MHz)
+     1838100 Hz: S=22  max |f-ideal| 0.0006 Hz  tone step 1.4641..1.4658 Hz  S stable:yes counts ok:yes  PASS
+     3570100 Hz: S=23  max |f-ideal| 0.0013 Hz  tone step 1.4639..1.4667 Hz  S stable:yes counts ok:yes  PASS
+     7040100 Hz: S=24  max |f-ideal| 0.0021 Hz  tone step 1.4617..1.4669 Hz  S stable:yes counts ok:yes  PASS
+    10140200 Hz: S=25  max |f-ideal| 0.0025 Hz  tone step 1.4630..1.4684 Hz  S stable:yes counts ok:yes  PASS
+    14097100 Hz: S=25  max |f-ideal| 0.0051 Hz  tone step 1.4601..1.4704 Hz  S stable:yes counts ok:yes  PASS
+    18106100 Hz: S=26  max |f-ideal| 0.0039 Hz  tone step 1.4587..1.4672 Hz  S stable:yes counts ok:yes  PASS
+    21096100 Hz: S=26  max |f-ideal| 0.0051 Hz  tone step 1.4622..1.4737 Hz  S stable:yes counts ok:yes  PASS
+    24926100 Hz: S=26  max |f-ideal| 0.0079 Hz  tone step 1.4627..1.4787 Hz  S stable:yes counts ok:yes  PASS
+    28126100 Hz: S=27  max |f-ideal| 0.0051 Hz  tone step 1.4633..1.4735 Hz  S stable:yes counts ok:yes  PASS
+== sysclk 300 MHz (max RF sysclk/8 = 37.500 MHz)
+     1838100 Hz: S=22  max |f-ideal| 0.0006 Hz  tone step 1.4646..1.4661 Hz  S stable:yes counts ok:yes  PASS
+     3570100 Hz: S=23  max |f-ideal| 0.0013 Hz  tone step 1.4636..1.4663 Hz  S stable:yes counts ok:yes  PASS
+     7040100 Hz: S=24  max |f-ideal| 0.0023 Hz  tone step 1.4623..1.4673 Hz  S stable:yes counts ok:yes  PASS
+    10140200 Hz: S=25  max |f-ideal| 0.0021 Hz  tone step 1.4607..1.4658 Hz  S stable:yes counts ok:yes  PASS
+    14097100 Hz: S=25  max |f-ideal| 0.0049 Hz  tone step 1.4609..1.4708 Hz  S stable:yes counts ok:yes  PASS
+    18106100 Hz: S=26  max |f-ideal| 0.0024 Hz  tone step 1.4655..1.4655 Hz  S stable:yes counts ok:yes  PASS
+    21096100 Hz: S=26  max |f-ideal| 0.0055 Hz  tone step 1.4590..1.4700 Hz  S stable:yes counts ok:yes  PASS
+    24926100 Hz: S=26  max |f-ideal| 0.0074 Hz  tone step 1.4505..1.4659 Hz  S stable:yes counts ok:yes  PASS
+    28126100 Hz: S=27  max |f-ideal| 0.0049 Hz  tone step 1.4637..1.4735 Hz  S stable:yes counts ok:yes  PASS
+== sysclk 200 MHz (max RF sysclk/8 = 25.000 MHz)
+     1838100 Hz: S=23  max |f-ideal| 0.0005 Hz  tone step 1.4649..1.4652 Hz  S stable:yes counts ok:yes  PASS
+     3570100 Hz: S=24  max |f-ideal| 0.0009 Hz  tone step 1.4642..1.4663 Hz  S stable:yes counts ok:yes  PASS
+     7040100 Hz: S=25  max |f-ideal| 0.0017 Hz  tone step 1.4623..1.4661 Hz  S stable:yes counts ok:yes  PASS
+    10140200 Hz: S=25  max |f-ideal| 0.0032 Hz  tone step 1.4632..1.4709 Hz  S stable:yes counts ok:yes  PASS
+    14097100 Hz: S=26  max |f-ideal| 0.0033 Hz  tone step 1.4585..1.4659 Hz  S stable:yes counts ok:yes  PASS
+    18106100 Hz: S=26  max |f-ideal| 0.0052 Hz  tone step 1.4655..1.4655 Hz  S stable:yes counts ok:yes  PASS
+    21096100 Hz: S=27  max |f-ideal| 0.0035 Hz  tone step 1.4590..1.4673 Hz  S stable:yes counts ok:yes  PASS
+    24926100 Hz: S=27  max |f-ideal| 0.0053 Hz  tone step 1.4582..1.4698 Hz  S stable:yes counts ok:yes  PASS
+    28126100 Hz: refused (above limit)
+== sysclk 150 MHz (max RF sysclk/8 = 18.750 MHz)
+     1838100 Hz: S=23  max |f-ideal| 0.0006 Hz  tone step 1.4646..1.4661 Hz  S stable:yes counts ok:yes  PASS
+     3570100 Hz: S=24  max |f-ideal| 0.0013 Hz  tone step 1.4636..1.4663 Hz  S stable:yes counts ok:yes  PASS
+     7040100 Hz: S=25  max |f-ideal| 0.0023 Hz  tone step 1.4623..1.4673 Hz  S stable:yes counts ok:yes  PASS
+    10140200 Hz: S=26  max |f-ideal| 0.0021 Hz  tone step 1.4607..1.4658 Hz  S stable:yes counts ok:yes  PASS
+    14097100 Hz: S=27  max |f-ideal| 0.0024 Hz  tone step 1.4609..1.4659 Hz  S stable:yes counts ok:yes  PASS
+    18106100 Hz: S=27  max |f-ideal| 0.0024 Hz  tone step 1.4655..1.4655 Hz  S stable:yes counts ok:yes  PASS
+    21096100 Hz: refused (above limit)
+    24926100 Hz: refused (above limit)
+    28126100 Hz: refused (above limit)
+== sysclk 288 MHz with reference error corrected (TxChannelApplyFreq)
+     1838100 Hz: +-100 ppm corrected, worst |f_out-ideal| 0.0009 Hz, S stable:yes  PASS
+     3570100 Hz: +-100 ppm corrected, worst |f_out-ideal| 0.0018 Hz, S stable:yes  PASS
+     7040100 Hz: +-100 ppm corrected, worst |f_out-ideal| 0.0021 Hz, S stable:yes  PASS
+    10140200 Hz: +-100 ppm corrected, worst |f_out-ideal| 0.0025 Hz, S stable:yes  PASS
+    14097100 Hz: +-100 ppm corrected, worst |f_out-ideal| 0.0042 Hz, S stable:yes  PASS
+    18106100 Hz: +-100 ppm corrected, worst |f_out-ideal| 0.0047 Hz, S stable:yes  PASS
+    21096100 Hz: +-100 ppm corrected, worst |f_out-ideal| 0.0063 Hz, S stable:yes  PASS
+    24926100 Hz: +-100 ppm corrected, worst |f_out-ideal| 0.0082 Hz, S stable:yes  PASS
+    28126100 Hz: +-100 ppm corrected, worst |f_out-ideal| 0.0048 Hz, S stable:yes  PASS
+
+RESULT: PASS

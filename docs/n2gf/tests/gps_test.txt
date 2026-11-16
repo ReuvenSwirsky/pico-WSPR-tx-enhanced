@@ -1,0 +1,20 @@
+ok:   first PPS accepted
+ok:   PPS IRQ disarmed after an edge
+ok:   RMC time parsed: 1794830400 (expect 1794830400 = 2026-11-16 12:00:00Z)
+ok:   West longitude is negative: -74.0000
+ok:   RMC anchored to its PPS edge
+ok:   bad checksum rejected, time unchanged
+ok:   spurious PPS edge 0.2 s after a real one is rejected
+ok:   PPS IRQ re-armed by the 900 ms alarm
+ok:   next real PPS accepted
+ok:   time at PPS+1 = 12:00:01 (1794830401)
+ok:   holdover tick +1 s -> 12:00:02
+ok:   holdover 120 s later -> 12:02:00 (1794830520)
+ok:   +-0.3 s jitter rounds to the same second
+ok:   non-RMC sentences leave time alone
+ok:   no correction before 32 full intervals
+ok:   slow crystal measured as -15000 ppb (expect -15000), not 5.76e17
+ok:   status field mirrors the safe value
+ok:   PPS lost 10 min: last good value held
+
+RESULT: PASS

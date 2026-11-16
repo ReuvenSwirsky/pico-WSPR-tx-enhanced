@@ -1,0 +1,6 @@
+Idealised model: GPIO edges quantised to sysclk, no PLL jitter / pad effects. dBc vs carrier, Blackman window, 8M-sample FFT.
+original firmware, Pico 1 @200 MHz, 20 m     | +-1.5..50 kHz  -41.1 dBc @  14.1180 MHz | +-1 MHz   -8.7 dBc @  14.7573 MHz | 1 MHz..0.9f  -21.5 dBc @  12.1166 MHz | 1.1f..2f  -24.7 dBc @  16.0775 MHz
+original engine @200 MHz, 12 m               | +-1.5..50 kHz  -44.1 dBc @  24.9739 MHz | +-1 MHz   -0.2 dBc @  25.0739 MHz | 1 MHz..0.9f  -28.3 dBc @  22.4135 MHz | 1.1f..2f  -37.3 dBc @  27.4387 MHz
+classic engine @288 MHz, 10 m (fallback uf2) | +-1.5..50 kHz  -54.4 dBc @  28.1043 MHz | +-1 MHz  -25.5 dBc @  27.5410 MHz | 1 MHz..0.9f  -15.3 dBc @  24.7566 MHz | 1.1f..2f  -17.1 dBc @  31.4956 MHz
+fine engine @288 MHz, 10 m (main uf2)        | +-1.5..50 kHz  -54.0 dBc @  28.1480 MHz | +-1 MHz  -26.1 dBc @  27.5410 MHz | 1 MHz..0.9f  -24.8 dBc @  20.8021 MHz | 1.1f..2f  -22.1 dBc @  34.8651 MHz
+fine engine @288 MHz, 20 m                   | +-1.5..50 kHz  -62.2 dBc @  14.1389 MHz | +-1 MHz  -26.1 dBc @  13.1066 MHz | 1 MHz..0.9f  -26.6 dBc @   7.0486 MHz | 1.1f..2f  -26.4 dBc @  21.1457 MHz
