@@ -53,6 +53,7 @@
 #include <WSPRutility.h>
 #include <maidenhead.h>
 #include "persistentStorage.h"
+#include "resetcause.h"
 #include <pico/time.h>
 
 WSPRbeaconContext becaconData = {0};
@@ -224,6 +225,7 @@ int WSPRbeaconTxScheduler(int verbose)
                        PioDCOUnderrun(becaconData._pTX->_p_oscillator) ? "YES (output was disturbed)" : "no",
                        (unsigned long)gu32_pps_count, (unsigned long)gu32_pps_rejected,
                        (unsigned long)becaconData._pTX->_p_oscillator->_pGPStime->_time_data._u32_nmea_bad_count);
+                ResetCausePrint("WSPR> ");   /* N2GF: watchdog-theory check, repeated every Tx */
                 {
                     int32_t ppb;
                     const int st = PioDCOCorrectionPpb(becaconData._pTX->_p_oscillator, &ppb);

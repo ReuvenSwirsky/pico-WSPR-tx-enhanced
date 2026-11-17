@@ -90,6 +90,7 @@ target_sources(pico-wspr-tx-enhanced PUBLIC
                ${CMAKE_CURRENT_LIST_DIR}/main.c
                ${CMAKE_CURRENT_LIST_DIR}/persistentStorage.c
                 ${CMAKE_CURRENT_LIST_DIR}/cw_beacon.c
+               ${CMAKE_CURRENT_LIST_DIR}/resetcause.c
               )
 
 pico_set_program_name(pico-wspr-tx-enhanced "pico-wspr-tx-enhanced")
@@ -117,6 +118,7 @@ target_link_libraries(pico-wspr-tx-enhanced
                       pico_multicore
                       hardware_timer
                       hardware_clocks
+                      hardware_watchdog
                       hardware_pio
                      )
 

@@ -8,6 +8,7 @@
 #include "hardware/watchdog.h"
 #include "persistentStorage.h"
 #include "protos.h"
+#include "resetcause.h"
 
 const uint64_t  MAGIC_NUMBER    = 0x5069636F57535052;// 'PicoWSPR  
 const uint32_t  CURRENT_VERSION = 14;
@@ -292,7 +293,8 @@ void handleSettings(bool forceSettingsEntry)
             sleep_ms(100);  
         }
   
-        printf("Firmware was built at %s on %s\n", __TIME__, __DATE__);        
+        printf("Firmware was built at %s on %s\n", __TIME__, __DATE__);
+        ResetCausePrint("");
 
         while (true)
         {
@@ -332,6 +334,7 @@ void handleSettings(bool forceSettingsEntry)
             if (strcmp(line,"REBOOT") == 0)
             {
                 printf("Exiting settings. Rebooting...\n");
+                ResetCauseMarkIntentional();
                 watchdog_enable(1, 1);
                 while(true);
             }

@@ -73,6 +73,7 @@
 #include "pico/bootrom.h"
 #include "tusb.h"
 #include "cw_beacon.h"
+#include "resetcause.h"
 
 #define CONFIG_GPS_SOLUTION_IS_MANDATORY NO
 #define CONFIG_GPS_RELY_ON_PAST_SOLUTION NO
@@ -154,6 +155,21 @@ void wsprLoop(void)
         wsprTickUs = lastTickUs;
 
         watchdog_update();
+
+        /* N2GF: early boot printf is lost if the USB serial port isn't open yet, so
+           repeat the build banner and the reset cause whenever a terminal connects. */
+        {
+            static bool cdcWasConnected = false;
+            const bool cdcNow = tud_cdc_connected();
+            if(cdcNow && !cdcWasConnected)
+            {
+                printf("N2GF build: sysclk %lu MHz, DCO %s engine, max RF %lu Hz\n",
+                       (unsigned long)PLL_SYS_MHZ, WSPR_DCO_FINE ? "fine (dco3)" : "classic (dco2)",
+                       (unsigned long)PioDCOMaxFreqHz());
+                ResetCausePrint("N2GF ");
+            }
+            cdcWasConnected = cdcNow;
+        }
 #ifdef DEBUG_PRINT
 const bool debugMessages = true;
 #else
@@ -170,6 +186,7 @@ const bool debugMessages = false;
 int main()
 {
     repeating_timer_t oneSecondTimer;// Used in conjunction with the RTC for no GPS operation
+    ResetCauseCapture();   /* N2GF: before anything can touch the watchdog */
     InitPicoHW();
     gpio_init(BTN_PIN);
     gpio_set_dir(BTN_PIN, GPIO_IN);
@@ -212,6 +229,7 @@ int main()
     printf("N2GF build: sysclk %lu MHz, DCO %s engine, max RF %lu Hz\n",
            (unsigned long)PLL_SYS_MHZ, WSPR_DCO_FINE ? "fine (dco3)" : "classic (dco2)",
            (unsigned long)PioDCOMaxFreqHz());
+    ResetCausePrint("N2GF ");
     {
         const uint32_t fTop = (settingsData.mode == MODE_WSPR) ? bandFrequencies[settingsData.bandIndex] + WSPR_FREQ_RANGE_HZ
                                                                : settingsData.txFreq;
@@ -226,6 +244,7 @@ int main()
                 if(gpio_get(BTN_PIN))
                 {
                     handleSettings(true);   /* lets the user pick another band */
+                    ResetCauseMarkIntentional();
                     watchdog_enable(1, 1);  /* then reboot with the new settings */
                     while(true);
                 }
