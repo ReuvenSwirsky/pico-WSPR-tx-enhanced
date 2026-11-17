@@ -38,18 +38,41 @@ pico_generate_pio_header(pico-wspr-tx-enhanced ${CMAKE_CURRENT_LIST_DIR}/pico-hf
 pico_generate_pio_header(pico-wspr-tx-enhanced ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/piodco/dco3.pio)
 
 # N2GF build options --------------------------------------------------------
-# WSPR_SYSCLK_MHZ : system clock in MHz (empty = original 200 MHz). DCO max = sysclk/8.
-#                   e.g. -DPICO_BOARD=pico2 -DWSPR_SYSCLK_MHZ=288 for 10 m on a Pico 2.
+# WSPR_SYSCLK_MHZ : system clock in MHz. DCO max = sysclk/8.
+#                   AUTO (default) = 288 on RP2350 (Pico 2 / RP2350-Zero, 10 m capable),
+#                                    original 200 on RP2040.
+#                   An explicit number (e.g. -DWSPR_SYSCLK_MHZ=276) always wins;
+#                   an explicit empty value (-DWSPR_SYSCLK_MHZ=) = original 200 MHz.
 # WSPR_DCO_FINE   : 1 = dco3.pio back end (per-half-period counts, ~4x lower spurs),
-#                   0 = original dco2.pio back end (default).
-set(WSPR_SYSCLK_MHZ "" CACHE STRING "System clock in MHz (empty = original 200 MHz)")
-set(WSPR_DCO_FINE 0 CACHE STRING "1 = fine dco3.pio DCO back end, 0 = original dco2.pio")
-if (NOT "${WSPR_SYSCLK_MHZ}" STREQUAL "")
-  target_compile_definitions(pico-wspr-tx-enhanced PRIVATE WSPR_SYSCLK_MHZ=${WSPR_SYSCLK_MHZ})
-  message(STATUS "N2GF: WSPR_SYSCLK_MHZ=${WSPR_SYSCLK_MHZ}")
+#                   0 = original dco2.pio back end.
+#                   AUTO (default) = 1 on RP2350, 0 on RP2040. Explicit 0/1 always wins.
+set(WSPR_SYSCLK_MHZ "AUTO" CACHE STRING "System clock in MHz (AUTO = 288 on RP2350, 200 on RP2040; empty = 200)")
+set(WSPR_DCO_FINE "AUTO" CACHE STRING "1 = fine dco3.pio DCO back end, 0 = original dco2.pio (AUTO = 1 on RP2350)")
+if (PICO_PLATFORM MATCHES "^rp2350")
+  set(N2GF_IS_RP2350 1)
+else()
+  set(N2GF_IS_RP2350 0)
 endif()
-target_compile_definitions(pico-wspr-tx-enhanced PRIVATE WSPR_DCO_FINE=${WSPR_DCO_FINE})
-message(STATUS "N2GF: WSPR_DCO_FINE=${WSPR_DCO_FINE}")
+set(N2GF_SYSCLK "${WSPR_SYSCLK_MHZ}")
+if ("${N2GF_SYSCLK}" STREQUAL "AUTO")
+  if (N2GF_IS_RP2350)
+    set(N2GF_SYSCLK 288)
+  else()
+    set(N2GF_SYSCLK "")
+  endif()
+endif()
+set(N2GF_FINE "${WSPR_DCO_FINE}")
+if ("${N2GF_FINE}" STREQUAL "AUTO")
+  set(N2GF_FINE ${N2GF_IS_RP2350})
+endif()
+if (NOT "${N2GF_SYSCLK}" STREQUAL "")
+  target_compile_definitions(pico-wspr-tx-enhanced PRIVATE WSPR_SYSCLK_MHZ=${N2GF_SYSCLK})
+  message(STATUS "N2GF: platform ${PICO_PLATFORM}, WSPR_SYSCLK_MHZ=${N2GF_SYSCLK} (option: ${WSPR_SYSCLK_MHZ})")
+else()
+  message(STATUS "N2GF: platform ${PICO_PLATFORM}, original 200 MHz sysclk (option: '${WSPR_SYSCLK_MHZ}')")
+endif()
+target_compile_definitions(pico-wspr-tx-enhanced PRIVATE WSPR_DCO_FINE=${N2GF_FINE})
+message(STATUS "N2GF: WSPR_DCO_FINE=${N2GF_FINE} (option: ${WSPR_DCO_FINE})")
 
 target_sources(pico-wspr-tx-enhanced PUBLIC
 	             ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/lib/assert.c
