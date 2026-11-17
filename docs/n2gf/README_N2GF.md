@@ -16,11 +16,11 @@ The steps in section 5 are how you prove it.
 | `n2gf-10m-pico2.diff`, `0001-*.patch`, `0002-*.patch` | All source changes against 57d0aa0 (one combined diff; two `git am` patches: the 10 m port, then the GPS calibration) |
 | `tests/` | Results from the PC-side tests and the spur model. `hosttest/RUN_TESTS.sh` reruns them all |
 | `hosttest/` | Test sources: `dco_math_test.c`, `fine_engine_test.c` (now also checks GPS/CALPPM correction), `gps_test.c` (runs the real GPStime.c), `ppscal_test.c` (new GPS calibration), `upstream_pps_test.c` (reproduces the original GPS-correction bug), plus the spur models |
-| `build.sh` | Rebuild script: `build.sh <name> pico2 288 1` |
+| `build.sh` | Rebuild script: `build.sh <name> pico2` (AUTO = 288 MHz, fine), `build.sh <name> pico2 "" 0` (200 MHz classic), `build.sh <name> pico2 AUTO AUTO -DPICO_FLASH_SIZE_BYTES=2097152` (RP2350-Zero 2 MB) |
 
 ## 2. What changed
 
-1. **Clock is a build option.** `-DWSPR_SYSCLK_MHZ=288`. If you leave it unset, you get the original 200 MHz.
+1. **Clock is a build option, and RP2350 builds default to 288 MHz.** With `-DPICO_BOARD=pico2` (any RP2350 platform), `WSPR_SYSCLK_MHZ` and `WSPR_DCO_FINE` default to `AUTO`, which means 288 MHz and the fine dco3 engine. RP2040 builds (`-DPICO_BOARD=pico`) keep the original 200 MHz and classic engine. Explicit values still win: `-DWSPR_SYSCLK_MHZ=276`, `-DWSPR_SYSCLK_MHZ=` (empty = original 200 MHz), `-DWSPR_DCO_FINE=0` (FALLBACK engine).
    - On the RP2350 it does the following, in this order:
      - Core voltage to 1.30 V (the most allowed without unlocking the limit).
      - QSPI flash slowed to clk_sys/4 = 72 MHz, with RX sample delay = 4 half-cycles.
@@ -55,6 +55,8 @@ The steps in section 5 are how you prove it.
    - Bad-NMEA count
    - `GPS PPS missing - holdover tick N`, if PPS dropped during Tx
    - `Freq corr: -15000 ppb (GPS locked | GPS held, PPS lost | CALPPM) windows:… ivl-rej:… win-rej:… outliers:…`
+8. **Reset cause at boot** (`resetcause.c`). The firmware prints `Last reset: <cause> [...]. Watchdog timeouts since power-up: N` at boot, again whenever a USB terminal connects (early boot output is lost before USB enumerates), in the settings menu, and after every WSPR transmission. It tells a watchdog timeout (main loop blocked >10 s, the old hang) apart from power-on/brown-out, the RUN pin, a settings-menu reboot, or a bootloader/picotool reboot. On RP2350 it also decodes the POWMAN `CHIP_RESET` bits (POR, BOR, RUN, GLITCH, …). The watchdog-timeout counter lives in watchdog scratch registers 1-2, which survive watchdog reboots, and resets on power-up.
+9. **`.gitignore`** now ignores `build/` and `build-*/` folders.
 
 ## 3. The "hangs above 20 MHz with GPS" bug
 
