@@ -51,4 +51,7 @@ Module.symvers
 Mkfile.old
 dkms.conf
 build/*
+build/
+build-*/
+docs/n2gf/hosttest/*_test
 .vscode/*
